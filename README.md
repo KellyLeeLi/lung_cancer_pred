@@ -11,7 +11,7 @@ print('data information5：',df.info())
 print(df.describe())
 ```
 
-```python
+
 data shape： (309, 16)
 <class 'pandas.core.frame.DataFrame'>
 RangeIndex: 309 entries, 0 to 308
@@ -37,4 +37,4 @@ Data columns (total 16 columns):
 dtypes: int64(14), object(2)
 memory usage: 38.8+ KB
 data information5： None
-```
+
