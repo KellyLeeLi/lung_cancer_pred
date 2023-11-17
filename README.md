@@ -103,3 +103,4 @@ sns.histplot(data=df, x="AGE", hue="LUNG_CANCER", kde=True, ax=ax[1])
 sns.boxplot(x=df['AGE'])
 sns.boxplot(x=df['LUNG_CANCER'], y=df['AGE'], ax=ax[2])
 ```
+![fig0]( "fig0")
