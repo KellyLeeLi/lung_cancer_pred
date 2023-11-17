@@ -89,6 +89,8 @@ df['GENDER'] = le.fit_transform(df['GENDER'])
 df['LUNG_CANCER'] = le.fit_transform(df['LUNG_CANCER'])
 ```
 
+## 繪出圖表
+
 繪圖看看年齡與肺癌的關係
 ```python
 # 繪圖分析
