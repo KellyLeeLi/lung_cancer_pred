@@ -325,7 +325,7 @@ weighted avg       0.66      0.81      0.73        69
 ![fig8](https://github.com/KellyLeeLi/lung_cancer_pred/blob/main/fig/Figure%202023-11-17%20100359%20(8).png "fig8")
 
 
-### Random Forest Classifier 隨機森林 81%
+### Random Forest Classifier 隨機森林 87%
 透過param_gird來協助找出參數n_estimators最佳數值
 ```python
 # Random Forest Classifier
@@ -368,4 +368,142 @@ weighted avg       0.89      0.87      0.84        69
 ![fig9](https://github.com/KellyLeeLi/lung_cancer_pred/blob/main/fig/Figure%202023-11-17%20100359%20(9).png "fig9")
 
 
+
+### Gradient Boosting Classifier 87%
+透過param_gird來協助找出參數n_estimators和learning_rate的最佳組合
+```python
+# Gradient Boosting Classifier
+from sklearn.ensemble import GradientBoostingClassifier
+param_gird = {'n_estimators':[50, 75, 100, 125, 150, 200, 300],
+              'learning_rate':[0.05, 0.075, 0.1, 0.25, 0.5, 0.75, 1]}
+gbc = RandomizedSearchCV(GradientBoostingClassifier(random_state=42), param_gird)
+gbc.fit(x_train, y_train)
+gbc_pre = gbc.predict(x_test)
+print(gbc.best_params_)
+print(classification_report(y_test, gbc_pre))
+
+  # 混淆矩陣
+gbc_cm = confusion_matrix(y_test, gbc_pre)
+plt.figure(figsize=(6,4))
+gbc_s = sns.heatmap(gbc_cm, annot=True)
+gbc_s.set(xlabel='Predicted', ylabel='Actual', title='Gradient Boosting Classifier')
+```
+
+
+輸出結果：
+```
+{'n_estimators': 75, 'learning_rate': 0.05}
+              precision    recall  f1-score   support
+
+           0       1.00      0.31      0.47        13
+           1       0.86      1.00      0.93        56
+
+    accuracy                           0.87        69
+   macro avg       0.93      0.65      0.70        69
+weighted avg       0.89      0.87      0.84        69
+```
+{'n_estimators': 75, 'learning_rate': 0.05}
+
+正確率為87%
+
+
+
+混淆矩陣：
+
+![fig10](https://github.com/KellyLeeLi/lung_cancer_pred/blob/main/fig/Figure%202023-11-17%20100359%20(10).png "fig10")
+
+
+
+
+### XGBoost Classifier 86%
+透過param_gird來協助找出參數n_estimators、gamma和learning_rate的最佳組合
+```python
+# XGBoost Classifier (佔用的資源比LightGBM多)
+from xgboost import XGBClassifier
+param_gird = {'n_estimators':[50, 75, 100, 125, 150, 200, 300],
+              'learning_rate':[0.05, 0.075, 0.1, 0.25, 0.5, 0.75, 1],
+              'gamma':[0.001, 0.01, 0.1, 1, 10, 100]}
+xgb = RandomizedSearchCV(XGBClassifier(random_state=42), param_gird)
+xgb.fit(x_train, y_train)
+xgb_pre = xgb.predict(x_test)
+print(xgb.best_params_)
+print(classification_report(y_test, xgb_pre))
+
+  # 混淆矩陣
+xgb_cm = confusion_matrix(y_test, xgb_pre)
+plt.figure(figsize=(6,4))
+xgb_s = sns.heatmap(xgb_cm, annot=True)
+xgb_s.set(xlabel='Predicted', ylabel='Actual', title='XGBoost Classifier')
+```
+
+
+輸出結果：
+```
+{'n_estimators': 125, 'learning_rate': 0.75, 'gamma': 1}
+              precision    recall  f1-score   support
+
+           0       1.00      0.23      0.38        13
+           1       0.85      1.00      0.92        56
+
+    accuracy                           0.86        69
+   macro avg       0.92      0.62      0.65        69
+weighted avg       0.88      0.86      0.82        69
+```
+{'n_estimators': 125, 'learning_rate': 0.75, 'gamma': 1}
+
+正確率為86%
+
+
+
+混淆矩陣：
+
+![fig11](https://github.com/KellyLeeLi/lung_cancer_pred/blob/main/fig/Figure%202023-11-17%20100359%20(11).png "fig11")
+
+
+
+### LightGBM Classifier 88%
+佔用的資源XGBoost
+準確率卻提高了
+```python
+# LightGBM Classifier
+from lightgbm import LGBMClassifier
+lgbm = LGBMClassifier()
+lgbm.fit(x_train, y_train)
+lgbm_pre = lgbm.predict(x_test)
+print(classification_report(y_test, lgbm_pre))
+
+  # 混淆矩陣
+lgbm_cm = confusion_matrix(y_test, lgbm_pre)
+plt.figure(figsize=(6,4))
+lgbm_s = sns.heatmap(lgbm_cm, annot=True)
+lgbm_s.set(xlabel='Predicted', ylabel='Actual', title='LightGBM Classifier')
+```
+
+
+輸出結果：
+```
+              precision    recall  f1-score   support
+
+           0       1.00      0.38      0.56        13
+           1       0.88      1.00      0.93        56
+
+    accuracy                           0.88        69
+   macro avg       0.94      0.69      0.74        69
+weighted avg       0.90      0.88      0.86        69
+```
+
+正確率為88%
+
+
+
+混淆矩陣：
+
+![fig12](https://github.com/KellyLeeLi/lung_cancer_pred/blob/main/fig/Figure%202023-11-17%20100359%20(12).png "fig12")
+
+
+
+## 未來持續改進
+- 嘗試挑選參數，看是否能提升準確度
+- 加入深度學習模型
+- 發佈模型以提升實用性
 
