@@ -91,7 +91,7 @@ df['LUNG_CANCER'] = le.fit_transform(df['LUNG_CANCER'])
 
 ## 繪出圖表
 
-繪圖看看年齡與肺癌的關係
+#### 繪圖看看年齡分布狀況
 ```python
 # 繪圖分析
 # Age
@@ -103,4 +103,269 @@ sns.histplot(data=df, x="AGE", hue="LUNG_CANCER", kde=True, ax=ax[1])
 sns.boxplot(x=df['AGE'])
 sns.boxplot(x=df['LUNG_CANCER'], y=df['AGE'], ax=ax[2])
 ```
-![fig0]( "fig0")
+
+輸出結果：
+![fig00](https://github.com/KellyLeeLi/lung_cancer_pred/blob/main/fig/Figure%202023-11-17%20100359%20(00).png "fig00")
+
+
+#### 繪製熱圖
+``` python
+plt.figure(figsize=(15,15))
+sns.heatmap(df.corr(),annot=True,linewidth=0.5,fmt='0.2f')
+```
+
+輸出結果：
+![fig1](https://github.com/KellyLeeLi/lung_cancer_pred/blob/main/fig/Figure%202023-11-17%20100359%20(1).png "fig1")
+
+可以透過熱圖看到特徵之間的相關性
+
+
+#### 各個特徵與肺癌之間的關聯
+``` python
+col_list.remove('AGE')
+
+fig,ax = plt.subplots(15,2,figsize=(20, 90))
+for i, j in enumerate(col_list):
+    sns.countplot(data=df, x=j, ax=ax[i, 0])
+    sns.countplot(data=df, x=j, hue='LUNG_CANCER', ax=ax[i, 1])
+
+fig.tight_layout()
+fig.subplots_adjust(right=0.8)
+```
+
+輸出結果：
+![fig2](https://github.com/KellyLeeLi/lung_cancer_pred/blob/main/fig/Figure%202023-11-17%20100359%20(2).png "fig2")
+
+## 預測
+
+```python
+# 將1,2轉成0,1
+print(df.head())
+
+for i in col_list[1:14]:
+    df[i]=df[i].map({1: 0, 2: 1})
+print(df.head())
+```
+```python
+# 分割訓練及測試資料
+x = df.drop('LUNG_CANCER', axis=1)
+y = df['LUNG_CANCER']
+x_train, x_test, y_train, y_test = tts(x, y, test_size=0.25, random_state=42) 
+```
+
+### Logistic Regression 邏輯式回歸 87%
+```python
+# Logistic Regression
+logistic = linear_model.LogisticRegression(random_state=42)
+logistic.fit(x_train, y_train)
+lr_pre = logistic.predict(x_test)
+print(classification_report(y_test, lr_pre))
+
+lr_cm = confusion_matrix(y_test, lr_pre)
+plt.figure(figsize=(6,4))
+lr_s = sns.heatmap(lr_cm, annot=True)
+# plt.xlabel('Predicted')
+# plt.ylabel('Actual')
+lr_s.set(xlabel='Predicted', ylabel='Actual', title='Logistic Regression')
+```
+
+輸出結果：
+```
+              precision    recall  f1-score   support
+
+           0       1.00      0.31      0.47        13
+           1       0.86      1.00      0.93        56
+
+    accuracy                           0.87        69
+   macro avg       0.93      0.65      0.70        69
+weighted avg       0.89      0.87      0.84        69
+```
+正確率為87%
+
+
+混淆矩陣：
+
+![fig3](https://github.com/KellyLeeLi/lung_cancer_pred/blob/main/fig/Figure%202023-11-17%20100359%20(3).png "fig3")
+
+
+### Decision Tree 決策樹 86%
+```python
+# decision tree
+dtree = tree.DecisionTreeClassifier(random_state=42, max_depth=8)
+dtree.fit(x_train, y_train)
+print(dtree.score(x_test, y_test))
+dt_pre = dtree.predict(x_test)
+print(classification_report(y_test, dt_pre))
+
+  # 畫出決策樹
+fig, ax = plt.subplots(figsize=(55, 20))
+tree.plot_tree(dtree, ax=ax, fontsize=12,
+               filled=True, rounded=True,
+               feature_names=features)
+plt.show()
+
+
+  # 混淆矩陣
+dt_cm = confusion_matrix(y_test, dt_pre)
+plt.figure(figsize=(6,4))
+dt_s = sns.heatmap(dt_cm, annot=True)
+dt_s.set(xlabel='Predicted', ylabel='Actual', title='Decision Tree')
+```
+
+輸出結果：
+```
+              precision    recall  f1-score   support
+
+           0       0.80      0.31      0.44        13
+           1       0.86      0.98      0.92        56
+
+    accuracy                           0.86        69
+   macro avg       0.83      0.64      0.68        69
+weighted avg       0.85      0.86      0.83        69
+```
+正確率為86%
+
+
+決策樹：
+![fig4](https://github.com/KellyLeeLi/lung_cancer_pred/blob/main/fig/Figure%202023-11-17%20100359%20(4).png "fig4")
+
+混淆矩陣：
+
+![fig5](https://github.com/KellyLeeLi/lung_cancer_pred/blob/main/fig/Figure%202023-11-17%20100359%20(5).png "fig5")
+
+
+
+### K Nearest Neighbors K-近鄰演算法 81%
+```python
+# KNN
+k_range = range(1,10)
+k_scores = []
+for i in k_range:
+    knn = neighbors.KNeighborsClassifier(n_neighbors=i)
+    scores = cross_val_score(knn, x_train, y_train, cv=5, scoring='accuracy')
+    k_scores.append(scores.mean())
+
+x_ticks = [1,2,3,4,5,6,7,8,9,10]
+plt.figure(figsize=(6,4))
+plt.plot(k_range,k_scores)
+plt.xlabel('Value of i for KNN')
+plt.ylabel('Cross-Validated Accuracy')
+plt.xticks(ticks=x_ticks)
+plt.grid()
+plt.show()
+
+
+knn = neighbors.KNeighborsClassifier(n_neighbors=5)
+knn.fit(x_train, y_train)
+knn_pre = knn.predict(x_test)
+
+print('KNN正確率：',knn.score(x_test, y_test))
+
+  # 混淆矩陣
+knn_cm = confusion_matrix(y_test, knn_pre)
+plt.figure(figsize=(6,4))
+dt_s = sns.heatmap(knn_cm, annot=True)
+dt_s.set(xlabel='Predicted', ylabel='Actual', title='K Neighbors Classifier')
+```
+
+輸出結果：
+```
+KNN正確率： 0.8115942028985508
+```
+正確率為81%
+
+
+混淆矩陣：
+
+![fig7](https://github.com/KellyLeeLi/lung_cancer_pred/blob/main/fig/Figure%202023-11-17%20100359%20(7).png "fig7")
+
+
+
+### Support Vector Machine 支援向量機 81%
+透過param_gird來協助找出參數C與gamma的最佳組合
+```python
+# SVC
+from sklearn.svm import SVC
+param_gird = {'C':[0.001, 0.01, 0.1, 1, 10, 100],
+              'gamma':[0.001, 0.01, 0.1, 1, 10, 100]}
+svc = RandomizedSearchCV(SVC(random_state=42), param_gird)
+svc.fit(x_train, y_train)
+svc_pre = svc.predict(x_test)
+print(svc.best_params_)
+print(classification_report(y_test, svc_pre))
+
+  # 混淆矩陣
+svc_cm = confusion_matrix(y_test, svc_pre)
+plt.figure(figsize=(6,4))
+svc_s = sns.heatmap(svc_cm, annot=True)
+svc_s.set(xlabel='Predicted', ylabel='Actual', title='Support Vector Classifier')
+```
+
+
+輸出結果：
+```
+{'gamma': 0.01, 'C': 10}
+              precision    recall  f1-score   support
+
+           0       0.00      0.00      0.00        13
+           1       0.81      1.00      0.90        56
+
+    accuracy                           0.81        69
+   macro avg       0.41      0.50      0.45        69
+weighted avg       0.66      0.81      0.73        69
+```
+{'gamma': 0.01, 'C': 10}
+
+正確率為81%
+
+
+
+混淆矩陣：
+
+![fig8](https://github.com/KellyLeeLi/lung_cancer_pred/blob/main/fig/Figure%202023-11-17%20100359%20(8).png "fig8")
+
+
+### Random Forest Classifier 隨機森林 81%
+透過param_gird來協助找出參數n_estimators最佳數值
+```python
+# Random Forest Classifier
+param_gird = {'n_estimators':[10, 30, 50, 75, 100, 120, 150, 200, 300, 500]}
+rfc = RandomizedSearchCV(ensemble.RandomForestClassifier(random_state=42), param_gird)
+rfc.fit(x_train, y_train)
+rfc_pre = rfc.predict(x_test)
+print(rfc.best_params_)
+print(classification_report(y_test, rfc_pre))
+
+
+  # 混淆矩陣
+rfc_cm = confusion_matrix(y_test, rfc_pre)
+plt.figure(figsize=(6,4))
+rfc_s = sns.heatmap(rfc_cm, annot=True)
+rfc_s.set(xlabel='Predicted', ylabel='Actual', title='Random Forest Classifier')
+```
+
+
+輸出結果：
+```
+{'n_estimators': 200}
+              precision    recall  f1-score   support
+
+           0       1.00      0.31      0.47        13
+           1       0.86      1.00      0.93        56
+
+    accuracy                           0.87        69
+   macro avg       0.93      0.65      0.70        69
+weighted avg       0.89      0.87      0.84        69
+```
+{'n_estimators': 200}
+
+正確率為87%
+
+
+
+混淆矩陣：
+
+![fig9](https://github.com/KellyLeeLi/lung_cancer_pred/blob/main/fig/Figure%202023-11-17%20100359%20(9).png "fig9")
+
+
+
